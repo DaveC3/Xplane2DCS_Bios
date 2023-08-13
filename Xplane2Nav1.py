@@ -73,22 +73,22 @@ valuesOLD = 0
 
 
 def rec_UDP():
-    print("MAIN")
+
   # Open a Socket on UDP Port 49000
     UDP_IP ="127.0.0.1"
     UDP_PORT = 49001
     sock = socket.socket(socket.AF_INET, # Internet
                        socket.SOCK_DGRAM) # UDP
     sock.bind((UDP_IP, UDP_PORT))  #Xplane
-    #sock.bind(("192.168.1.188", 5010)) # DCS
-    print("bound")
 
-    while True:
+
+    if run:
         
         data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
         DecodeUDP_Packet(data)
-#         time.sleep(1)
-#         print(data)
+        root.after(100,rec_UDP)
+    else:
+        print('stop')
 
 def DecodeUDP_Packet(data):
   # Packet consists of 5 byte header and multiple messages. 
@@ -140,14 +140,8 @@ def DecodeDataMessage(message):
         
             myinteger = values
             val_string = str(myinteger)
-            
-    #         print(values)
-            #values = values * 10
             pMhz = val_string[:3]
             pKhz = val_string[3:5]
-    #         print(pMhz,".", pKhz)
-    #         Mhz = int(values[:3])
-    #         Khz = int(values[3:5])        
             Mhz= (nav1_Mhz_lookup[pMhz])
             Khz =(nav1_Khz_lookup[pKhz])
             tac = 5
@@ -184,17 +178,13 @@ def updateDisp(tac, Khz,Mhz):
         Mhz = Mhz
         Mhz_old = Mhz
         
-#     print( "Ils Khz = ",Khz, "Ils Mhz = ",Mhz)
     data = (Mhz + Khz+ tac)
-#     print(data)
     data = data.to_bytes(2, 'little')
     packet = b'UUUU'
     packet = packet + b":\x90\x02\x00"
     packet = packet + data
     packet = packet + b"\x02\x00\x00\x3c'"
-#     print(packet)
     time.sleep(.2)
-#     print(packet)
     mWindow.ser.write(packet)
     
 
@@ -215,68 +205,7 @@ class StatusBar :
     def clear(self):
         self.Label.config(text="")
         self.Label.update_idletasks()
-#class master(tk.Tk):
-# class StringDisplay:
-# 
-#     def __init__(self, frame, name, address, mask):
-# 
-#         self.f = tk.LabelFrame(frame, text=name)
-#         self.f.grid( row = 1 + int( mWindow.widgetCount/2), column = int(mWindow.widgetCount % 2) )
-# 
-#         self.myText = StringVar()
-#         self.currentText = ""
-#         self.e = tk.Entry(self.f , width=20, textvariable=self.myText)
-#         self.e.pack(side=LEFT) 
-# 
-#         self.b = tk.Button(self.f, text='>', command=self.ButtonPress, width=1)
-#         self.b.pack(side=LEFT) 
-# 
-#         self.address = address
-#         self.max_length = mask
-#         self.count = 0
-#         self.changed = 0
-# 
-#     def __del__(self):
-#         print("Destroying")
-#         self.f.destroy()
-# 
-#     def ButtonPress(self) :
-#         print("String Element ")
-#         v = self.myText.get() + "                  "
-#         self.currentText = v.encode()
-#         #self.currentText = self.currentText[0:self.max_length]
-#         print(self.currentText)
-#         self.changed = 1
-#         self.count = 0
-#         self.updateAddr = self.address
-# 
-# 
-#     def getPacket(self) :
-#         packet = ""
-#         if self.changed :
-#             toSend = (self.address + self.max_length) - self.updateAddr
-#             if toSend > 4 :
-#                 toSend = 4
-#             if toSend == 1 :
-#                 toSend = 2 		#always pad to 2 bytes
-#             if toSend >= 1:
-#                 v = self.currentText[self.count:self.count + toSend] 
-#                 #+ b" "
-#                 
-# 
-#                 l = b"" + np.uint8(toSend%256) + np.uint8(toSend/256)
-#                 packet =  b"" + np.uint8(self.updateAddr%256) + np.uint8(self.updateAddr/256) + l + v
-#                 self.count = self.count + toSend
-#                 self.updateAddr = self.updateAddr + toSend
-#                 if self.updateAddr >= self.address + self.max_length :
-#                     self.changed = 0
-# 
-#                 
-# 
-#             
-#         print(len(packet))
-#         print(packet)
-#         return packet        
+       
         
 class DCSMainWindow:
     
@@ -373,7 +302,11 @@ class DCSMainWindow:
         self.UDPB.bind("<Button-1>", self.start_UDP)
         self.UDPB.pack(side=LEFT)
         
-
+        self.stopButtonText = StringVar()
+        self.stopButtonText.set("Stop Receiving UDP")
+        self.stopB = tk.Button(self.topF, textvariable=self.stopButtonText)
+        self.stopB.bind("<Button-1>", self.stopLoop)
+        self.stopB.pack(side=RIGHT)
 
     def findSerPorts(self,event) :
         print("Poll Serial")
@@ -424,8 +357,18 @@ class DCSMainWindow:
  
             else :
                 print("Select a Serial Port")
+#******************************************************************                
+                
     def start_UDP(self, event):
+        global run
+        run = True
         rec_UDP()
+#******************************************************************          
+        
+    def stopLoop(self,event):
+        global run
+        run=False
+#******************************************************************
     #######################################
 #packet = packet + b"\xFE\xFF\x02\x00" + np.uint8(mWindow.updateCount%256) + b"\x00"    
       
@@ -463,8 +406,6 @@ def serial_ports():
     
 ###############################################
 
-
-####################################################
      
 # 
 root = tk.Tk()

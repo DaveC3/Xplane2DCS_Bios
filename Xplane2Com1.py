@@ -16,41 +16,6 @@ import serial
 import re
 import socket
 import struct 
-import threading
-
-nav1_Mhz10_lookup ={
-    '118': 0,
-    '119': 1,
-    '120': 2,
-    '121': 3,
-    '122': 4,
-    '123': 5,
-    '124': 6,
-    '125': 7,
-    '126': 8,
-    '127': 9,
-    '128': 10,
-    '129': 11,
-    '130': 12,
-    '131': 13,
-    '132': 14,
-    '133': 15,
-    '134': 16,
-    '135': 17,
-    '136': 18,
-    }
-nav1_hz_lookup = {
-    '00': 0,
-    '25': 1,
-    '50': 2,
-    '75': 3
-    }
-
-hz_ones = [0,1,2,3,4,5,6,7,8,9] 
-hz_tens = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]  
-com1_Mhz10 = [0,1,2,3,4,5,6,7,8,9] 
-com1_Khz= [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19] 
-
 
 com1_Khz_pos = 0
 com1_Mhz10_pos = 0
@@ -67,21 +32,20 @@ valuesOLD = 0
 ########################### receive from xplane send to com radio DCS Bios #############################
 
 def rec_UDP():
-    print("MAIN")
+#
   # Open a Socket on UDP Port 49000
     UDP_IP ="127.0.0.1"
     UDP_PORT = 49001
     sock = socket.socket(socket.AF_INET, # Internet
                        socket.SOCK_DGRAM) # UDP
     sock.bind((UDP_IP, UDP_PORT))  #Xplane
-    #sock.bind(("192.168.1.188", 5010)) # DCS
-    print("bound")
-
-    while True:
+    if run:
         
         data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
         DecodeUDP_Packet(data)
-
+        root.after(100,rec_UDP)
+    else:
+        print('stop')
 #----------------------------------------------------------------------------------------
 def DecodeUDP_Packet(data):
   # Packet consists of 5 byte header and multiple messages. 
@@ -264,27 +228,10 @@ class DCSMainWindow:
         self.intervalF = Frame(self.topF)
         self.intervalF.pack(side=LEFT)
 
-#         self.noUpdates = IntVar()
-#         self.intervalE = tk.Entry(self.intervalF, width=2, textvariable=self.noUpdates)
-#         self.intervalE.grid(row=0, column=1)
-
-
         self.findSerPortsB = tk.Button(self.topF, text="Find Serial Ports")
         self.findSerPortsB.bind("<Button-1>", self.findSerPorts)
         self.findSerPortsB.pack(side=LEFT)
         
-                #Recv Data 
-#         self.rightF = tk.LabelFrame(self.mainF, height = 30, text="Recv Text", width=50)
-#         self.rightF.grid(row=0, column=0, rowspan=20)
-
-        #Recv Data
-        
-#         self.recvTextVariable = StringVar()
-#         self.recvText = tk.Label(self.rightF, textvariable = self.recvTextVariable, height=40, width = 30,  anchor=NW, justify=LEFT)
-#         self.recvText.pack(anchor=N)
-
-
-
         self.serialPortList =  serial_ports() 
         if len(self.serialPortList) == 0 :
             self.serialPortList = ["-"]
@@ -314,9 +261,6 @@ class DCSMainWindow:
         self.stopB.pack(side=RIGHT)
         
 
-        
-
-
     def findSerPorts(self,event) :
         print("Poll Serial")
         self.serialPortList =serial_ports() 
@@ -331,11 +275,8 @@ class DCSMainWindow:
             self.listB['menu'].add_command(label=choice, command=tk._setit(self.serialPortChoice, choice))
 
 
-
-
     def toggleConnection(self,event):
 
-        
         if self.connectionIsOpen :
             self.connectionIsOpen = 0
             print("Close Connection")
@@ -366,14 +307,21 @@ class DCSMainWindow:
  
             else :
                 print("Select a Serial Port")
+#******************************************************************                
+                
     def start_UDP(self, event):
+        global run
+        run = True
         rec_UDP()
-        
+#******************************************************************          
         
     def stopLoop(self,event):
+        global run
         run=False
-    #######################################
-#packet = packet + b"\xFE\xFF\x02\x00" + np.uint8(mWindow.updateCount%256) + b"\x00"    
+#******************************************************************
+        
+#     def checkRun():
+#         run = run
       
   
 def serial_ports():
@@ -407,12 +355,9 @@ def serial_ports():
             pass
     return result        
     
-###############################################
-
 
 ####################################################
-     
-# 
+ 
 root = tk.Tk()
 mWindow = DCSMainWindow(root) 
 
